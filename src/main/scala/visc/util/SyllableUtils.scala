@@ -1,29 +1,18 @@
-package visc
+package visc.util
 
-object SyllableValidator extends (String => Boolean) {
+object SyllableUtils {
 
-  private def expand(shortForm: String): Set[String] = {
-    StringExpander(shortForm).toSet
-  }
-
-  private def expandAll(shortForm: String): Set[String] = {
-    shortForm
-      .split("\\|")
-      .flatMap(StringExpander)
-      .toSet
-  }
+  private val expand = StringExpander.expandToSet _
+  private val expandAll = StringExpander.expandAllToSet _
 
   val SingleVowels = expand("[aăâeêioôơuưy~~]")
-  val FrontVowels = expandAll("[e~]|[ê~]|[i~]|[i~]a|i[ê~]|[y~]|[y~]a")
+  val FrontVowels = expandAll("[e~]|[ê~]|[i~]|[i~]a|i[ê~]|[y~]|[y~]a|y[ê~]")
   val NonFrontVowels = expandAll("[a~]|[ă~]|[â~]|[o~]|o[o~]|[ô~]|[ơ~]|[u~]|[u~]a|u[ô~]|[ư~]|[ư~]a|ư[ơ~]")
   val Vowels = FrontVowels ++ NonFrontVowels
-  val VowelsWithSupport = expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[â~]|u[e~]|u[ê~]|u[i~]|u[ơ~]|u[y~]|u[y~]a")
+  val VowelsWithSupport = expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[ă~]|u[â~]|u[e~]|u[ê~]|u[i~]|u[o~]|u[ơ~]|u[y~]|u[y~]a|uy[ê~]")
   val VowelGroups = Vowels ++ VowelsWithSupport
 
-  val I = expand("[i~]")
-  val E2 = expand("[ê~]")
-
-  val LeadingCons = "b|c|ch|d|đ|g|gh|gi|h|k|kh|l|m|n|nh|ng|ngh|ph|q|r|s|t|th|tr|v|x"
+  val LeadingCons = "b|c|ch|d|đ|g|gh|gi|h|k|kh|l|m|n|nh|ng|ngh|p|ph|q|r|s|t|th|tr|v|x"
     .split("\\|")
     .toSet
 
@@ -31,7 +20,7 @@ object SyllableValidator extends (String => Boolean) {
     .split("\\|")
     .toSet
 
-  def disjunctionPattern(options: Set[String]): String = {
+  private def disjunctionPattern(options: Set[String]): String = {
     val optionsByLength = options
       .toList
       .sortBy(-_.length)
@@ -39,7 +28,7 @@ object SyllableValidator extends (String => Boolean) {
     s"${optionsByLength.mkString("|")}"
   }
 
-  val SyllablePartPatterns = List(
+  private val SyllablePartPatterns = List(
     s"(${disjunctionPattern(LeadingCons)})?",
     s"(${disjunctionPattern(VowelGroups)})",
     s"(${disjunctionPattern(TrailingCons)})?"
@@ -47,42 +36,40 @@ object SyllableValidator extends (String => Boolean) {
 
   val SyllablePartsPattern = ("^" + SyllablePartPatterns.mkString + "$").r
 
-  val LeadAndGroupRequirements = Map(
+  val LeadingConsToVowelGroup = Map(
     // TODO: Other leading vowels? Exclude "ue~"?
     "c" -> NonFrontVowels,
-    "g" -> (NonFrontVowels ++ expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[â~]|u[e~]|u[ê~]|u[i~]|u[ơ~]|u[y~]|u[y~]a")),
+    "g" -> (NonFrontVowels ++ expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[â~]|u[ê~]|u[i~]|u[ơ~]|u[y~]|u[y~]a|uy[ê~]")),
     "gh" -> FrontVowels,
     "k" -> FrontVowels,
-    "ng" -> (NonFrontVowels ++ expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[â~]|u[e~]|u[ê~]|u[i~]|u[ơ~]|u[y~]|u[y~]a")),
+    "ng" -> (NonFrontVowels ++ expandAll("o[a~]|o[ă~]|o[e~]|u[a~]|u[â~]|u[ê~]|u[i~]|u[ơ~]|u[y~]|u[y~]a|uy[ê~]")),
     "ngh" -> FrontVowels,
-    "q" -> expandAll("u[a~]|u[â~]|u[e~]|u[i~]|u[ê~]|u[ô~]|u[ơ~]|u[y~]|u[y~]a")
+    "q" -> expandAll("u[a~]|u[ă~]|u[â~]|u[e~]|u[ê~]|u[i~]|u[o~]|u[ô~]|u[ơ~]|u[y~]|u[y~]a|uy[ê~]")
   )
 
-  val TrailAndMainRequirements = Map(
+  val TrailingConsToMainVowel = Map(
     // TODO: Review carefully, maybe we missed some combinations which are not in dictionary
-    "c" -> (expand("[áạắặấậéẹóọốộúụứự]") ++ "iế|iệ|oó|oọ|uố|uộ|ướ|ượ".split("\\|").toSet),
+    "c" -> (expand("[áạắặấậéẹóọốộúụứự]") ++ "iế|iệ|yế|yệ|oó|oọ|uố|uộ|ướ|ượ".split("\\|").toSet),
     "ch" -> expand("[áạếệíịýỵ]"),
     "i" -> expandAll("[a~]|[o~]|[ô~]|[ơ~]|[u~]|u[ô~]|[ư~]|ư[ơ~]"),
     "m" -> (Vowels -- expandAll("[i~]a|[y~]a|[u~]a|[ư~]a")),
     "n" -> (Vowels -- expandAll("[i~]a|[y~]a|[u~]a|[ư~]a")),
-    "ng" -> (expandAll("[e~]|i[ê~]") ++ NonFrontVowels -- expandAll("[ơ~]|[u~]a|[ư~]a")),
+    "ng" -> (expandAll("[e~]|i[ê~]|y[ê~]") ++ NonFrontVowels -- expandAll("[ơ~]|[u~]a|[ư~]a")),
     "nh" -> expandAll("[ê~]|[i~]|[y~]|[a~]"),
     "o" -> expandAll("[e~]|[a~]"),
-    "p" -> (expand("[áạắặấậéẹếệíịóọốộớợúụứựýỵ]") ++ expandAll("iế|iệ|ướ|ượ")),
-    "t" -> (expand("[áạắặấậéẹếệíịóọốộớợúụứựýỵ]") ++ expandAll("iế|iệ|uố|uộ|ướ|ượ")),
-    "u" -> expandAll("[ê~]|[i~]|i[ê~]|[y~]|[a~]|[â~]|[ư~]|ư[ơ~]"),
+    "p" -> (expand("[áạắặấậéẹếệíịóọốộớợúụứựýỵ]") ++ expandAll("iế|iệ|yế|yệ|uố|uộ|ướ|ượ")),
+    "t" -> (expand("[áạắặấậéẹếệíịóọốộớợúụứựýỵ]") ++ expandAll("iế|iệ|yế|yệ|uố|uộ|ướ|ượ")),
+    "u" -> expandAll("[ê~]|[i~]|i[ê~]|[y~]|y[ê~]|[a~]|[â~]|[ư~]|ư[ơ~]"),
     "y" -> expand("[aâu~~]")
   )
 
-  val TrailRequiredVowels = expandAll("i[ê~]|[ă~]|[â~]|o[o~]|u[ô~]|ư[ơ~]")
+  val TrailRequiredVowels = expandAll("i[ê~]|y[ê~]|[ă~]|[â~]|o[o~]|u[ô~]|ư[ơ~]")
+
+  // TODO: Handle vowel group cases, like "u[ơ~]"
   val NoTrailVowels = expandAll("[i~]a|[y~]a|[u~]a|[ư~]a")
 
-  final case class SyllableParts(
-    leadingCons: Option[String],
-    supportingVowel: Option[String],
-    mainVowel: String,
-    trailingCons: Option[String]
-  )
+  private val I = expand("[i~]")
+  private val E2 = expand("[ê~]")
 
   private def leadingConsAndVowelGroup(
     leadingConsMatch: Option[String],
@@ -103,33 +90,18 @@ object SyllableValidator extends (String => Boolean) {
     }
   }
 
-  val NormalizationRules = Map(
-    "òa" -> "oà",
-    "óa" -> "oá",
-    "ỏa" -> "oả",
-    "õa" -> "oã",
-    "ọa" -> "oạ",
-    "òe" -> "oè",
-    "óe" -> "oé",
-    "ỏe" -> "oẻ",
-    "õe" -> "oẽ",
-    "ọe" -> "oẹ",
-    "ùy" -> "uỳ",
-    "úy" -> "uý",
-    "ủy" -> "uỷ",
-    "ũy" -> "uỹ",
-    "ụy" -> "uỵ"
+  final case class SyllableParts(
+    leadingCons: Option[String],
+    supportingVowel: Option[String],
+    mainVowel: String,
+    trailingCons: Option[String]
   )
 
-  private def normalize(syllable: String): String = {
-    NormalizationRules.foldLeft(syllable.toLowerCase) {
-      case (normalized, (from, to)) =>
-        normalized.replaceAll(from, to)
-    }
-  }
-
-  def split(syllable: String, isFullSyllable: Boolean = true): Option[SyllableParts] = {
-    val normalized = normalize(syllable)
+  def split(
+    syllable: String,
+    isFullSyllable: Boolean = true
+  ): Option[SyllableParts] = {
+    val normalized = LinguisticsUtils.normalize(syllable)
 
     for {
       match0 <- SyllablePartsPattern.findFirstMatchIn(normalized)
@@ -157,7 +129,7 @@ object SyllableValidator extends (String => Boolean) {
       }
 
       isLeadingConsValid = leadingCons.fold(true) { leadingCons =>
-        LeadAndGroupRequirements
+        LeadingConsToVowelGroup
           .get(leadingCons)
           .fold(true) { requirements =>
             requirements.contains(vowelGroup)
@@ -175,7 +147,7 @@ object SyllableValidator extends (String => Boolean) {
       }
 
       isTrailingConsValid = trailingCons.fold(true) { trailingCons =>
-        TrailAndMainRequirements
+        TrailingConsToMainVowel
           .get(trailingCons)
           .fold(true) { requirements =>
             requirements.contains(mainVowel)
@@ -192,19 +164,17 @@ object SyllableValidator extends (String => Boolean) {
     } yield syllableParts
   }
 
-  def apply(text: String, isFullSyllable: Boolean): Boolean = {
-    text
-      .split("\\s+")
-      .forall { text =>
-        if (!isFullSyllable && (LeadingCons.contains(text) || TrailingCons.contains(text))) {
-          true
-        } else {
-          split(text, isFullSyllable).isDefined
-        }
-      }
+  def validate(syllable: String, isFullSyllable: Boolean = true): Boolean = {
+    if (!isFullSyllable && (LeadingCons.contains(syllable) || TrailingCons.contains(syllable))) {
+      true
+    } else {
+      split(syllable, isFullSyllable).isDefined
+    }
   }
 
-  def apply(text: String): Boolean = {
-    apply(text, isFullSyllable = true)
+  def validateText(text: String): Boolean = {
+    text
+      .split("\\s+")
+      .forall(validate(_))
   }
 }

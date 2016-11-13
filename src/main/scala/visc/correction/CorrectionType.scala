@@ -1,4 +1,4 @@
-package visc
+package visc.correction
 
 sealed abstract class CorrectionType extends Product with Serializable
 
@@ -13,6 +13,10 @@ object CorrectionType {
   // Rule-based types
   case object FullWord extends CorrectionType
   case object Accent extends CorrectionType
+  case object Pronunciation extends CorrectionType
   case object ShortForm extends CorrectionType
   case object TeenCode extends CorrectionType
+
+  // For preventing some ways of correction
+  case object Penalty extends CorrectionType
 }

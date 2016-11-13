@@ -5,7 +5,8 @@ lazy val buildSettings = Seq(
 )
 
 lazy val deps = Seq(
-  "org.apache.commons" % "commons-math3" % "3.6.1"
+  "org.apache.commons" % "commons-math3" % "3.6.1",
+  "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 )
 
 lazy val visc = (project in file("."))

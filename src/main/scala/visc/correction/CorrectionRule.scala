@@ -1,29 +1,30 @@
-package visc
+package visc.correction
+
+import visc.util.{ListUtils, StringExpander}
 
 sealed abstract class CorrectionRule extends Product with Serializable {
+
   def andThen(other: CorrectionRule): Option[CorrectionRule]
+
+  def matchWord(word: String, endIndex: Int): Boolean
+  def matchCorrection(correction: String, endIndex: Int): Boolean
+
+  def matchTransform(
+    word: String,
+    wordEndIndex: Int,
+    correction: String,
+    correctionEndIndex: Int
+  ): Boolean = {
+    matchWord(word, wordEndIndex) && matchCorrection(correction, correctionEndIndex)
+  }
+
+  def beginIndices(wordEndIndex: Int, correctionEndIndex: Int): (Int, Int)
+
   def transform(word: String): Option[String]
   def inverseTransform(correction: String): Option[String]
 }
 
-object CorrectionRule {
-
-  sealed abstract class Basic extends CorrectionRule {
-
-    def matchWord(word: String, endIndex: Int): Boolean
-    def matchCorrection(correction: String, endIndex: Int): Boolean
-
-    def matchTransform(
-      word: String,
-      wordEndIndex: Int,
-      correction: String,
-      correctionEndIndex: Int
-    ): Boolean = {
-      matchWord(word, wordEndIndex) && matchCorrection(correction, correctionEndIndex)
-    }
-
-    def beginIndices(wordEndIndex: Int, correctionEndIndex: Int): (Int, Int)
-  }
+object CorrectionRule extends CorrectionRules {
 
   private def replace(
     word: String,
@@ -34,23 +35,10 @@ object CorrectionRule {
     word.substring(0, beginIndex) + replacement + word.substring(endIndex)
   }
 
-  def zipLongest[T](firstList : List[T], secondList : List[T]): List[(T, T)] = {
-    if (firstList.size <= secondList.size) {
-      Stream
-        .continually(firstList)
-        .flatten
-        .zip(secondList)
-        .toList
-
-    } else {
-      zipLongest(secondList, firstList)
-    }
-  }
-
   final case class Word(
     word: String,
     correction: String
-  ) extends Basic {
+  ) extends CorrectionRule {
 
     def andThen(other: CorrectionRule): Option[CorrectionRule] = {
       other match {
@@ -94,12 +82,12 @@ object CorrectionRule {
   object Word {
 
     def expand(
-      shortFormWord: String,
-      shortFormCorrection: String
+      wordText: String,
+      correctionText: String
     ): List[Word] = {
-      zipLongest(
-        StringExpander(shortFormWord),
-        StringExpander(shortFormCorrection)
+      ListUtils.zipLongest(
+        StringExpander.expand(wordText),
+        StringExpander.expand(correctionText)
       ).map {
         case (word, correction) =>
           Word(word, correction)
@@ -112,7 +100,7 @@ object CorrectionRule {
     prefixRequired: Boolean,
     suffixRequired: Boolean,
     correction: String
-  ) extends Basic {
+  ) extends CorrectionRule {
 
     def andThen(other: CorrectionRule): Option[CorrectionRule] = {
       other match {
@@ -121,7 +109,8 @@ object CorrectionRule {
             .map(Word(_, rule.correction))
 
         case rule: SyllablePart =>
-          if ((prefixRequired && rule.prefixRequired) || (suffixRequired && rule.suffixRequired)) {
+          // We relax the condition in order to merge rules aggressively
+          /* if ((prefixRequired && rule.prefixRequired) || (suffixRequired && rule.suffixRequired)) { */
             val newPrefixRequired = prefixRequired || rule.prefixRequired
             val newSuffixRequired = suffixRequired || rule.suffixRequired
 
@@ -137,29 +126,16 @@ object CorrectionRule {
                   }
               }
 
-          } else {
+          /* } else {
             val bothInMiddle = !(prefixRequired || suffixRequired ||
               rule.prefixRequired || rule.suffixRequired)
 
             if (bothInMiddle && correction == rule.part) {
               Some(SyllablePart(part, rule.correction))
-
             } else {
-              Some(Sequence(List(this, rule)))
+              None
             }
-          }
-
-        case rule: Sequence =>
-          rule.subrules match {
-            case firstSubrule :: remainingSubrules =>
-              andThen(firstSubrule).flatMap {
-                case _: Sequence => Some(Sequence(this :: rule.subrules))
-                case newRule => newRule.andThen(Sequence(remainingSubrules))
-              }
-
-            case Nil =>
-              Some(this)
-          }
+          } */
       }
     }
 
@@ -234,45 +210,15 @@ object CorrectionRule {
     }
 
     def expand(
-      shortFormPart: String,
-      shortFormCorrection: String
+      partText: String,
+      correctionText: String
     ): List[SyllablePart] = {
-      zipLongest(
-        StringExpander(shortFormPart),
-        StringExpander(shortFormCorrection)
+      ListUtils.zipLongest(
+        StringExpander.expand(partText),
+        StringExpander.expand(correctionText)
       ).map {
         case (part, correction) =>
           SyllablePart(part, correction)
-      }
-    }
-  }
-
-  final case class Sequence(
-    subrules: List[SyllablePart]
-  ) extends CorrectionRule {
-
-    def andThen(other: CorrectionRule): Option[CorrectionRule] = {
-      subrules
-        .foldRight(Some(other): Option[CorrectionRule]) { (subrule, superRuleOpt) =>
-          superRuleOpt.flatMap { superRule =>
-            subrule.andThen(superRule)
-          }
-        }
-    }
-
-    def transform(word: String): Option[String] = {
-      subrules.foldLeft(Some(word): Option[String]) { (transformedOpt, subrule) =>
-        transformedOpt.flatMap { transformed =>
-          subrule.transform(transformed)
-        }
-      }
-    }
-
-    def inverseTransform(correction: String): Option[String] = {
-      subrules.foldRight(Some(correction) : Option[String]) { (subrule, transformedOpt) =>
-        transformedOpt.flatMap { transformed =>
-          subrule.inverseTransform(transformed)
-        }
       }
     }
   }
