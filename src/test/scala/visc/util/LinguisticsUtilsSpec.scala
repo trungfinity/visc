@@ -14,6 +14,7 @@ class LinguisticsUtilsSpec extends UnitSpec {
     )
 
     LinguisticsUtils.expand('b') should contain theSameElementsAs List('b')
+    LinguisticsUtils.expand('d', isAccentExpanded = true) should contain theSameElementsAs List('đ')
   }
 
   it should "be reduced correctly" in {

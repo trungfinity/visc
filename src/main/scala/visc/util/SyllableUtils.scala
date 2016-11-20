@@ -28,13 +28,13 @@ object SyllableUtils {
     s"${optionsByLength.mkString("|")}"
   }
 
-  private val SyllablePartPatterns = List(
+  private val syllablePartPatterns = List(
     s"(${disjunctionPattern(LeadingCons)})?",
     s"(${disjunctionPattern(VowelGroups)})",
     s"(${disjunctionPattern(TrailingCons)})?"
   )
 
-  val SyllablePartsPattern = ("^" + SyllablePartPatterns.mkString + "$").r
+  val SyllablePartsPattern = ("^" + syllablePartPatterns.mkString + "$").r
 
   val LeadingConsToVowelGroup = Map(
     // TODO: Other leading vowels? Exclude "ue~"?
@@ -68,21 +68,21 @@ object SyllableUtils {
   // TODO: Handle vowel group cases, like "u[ơ~]"
   val NoTrailVowels = expandAll("[i~]a|[y~]a|[u~]a|[ư~]a")
 
-  private val I = expand("[i~]")
-  private val E2 = expand("[ê~]")
+  private val iExpanded = expand("[i~]")
+  private val e2Expanded = expand("[ê~]")
 
   private def leadingConsAndVowelGroup(
     leadingConsMatch: Option[String],
     vowelGroupMatch: String,
     trailingCons: Option[String]
   ): Option[(Option[String], String)] = {
-    if (leadingConsMatch.contains("g") && I.contains(vowelGroupMatch)) {
+    if (leadingConsMatch.contains("g") && iExpanded.contains(vowelGroupMatch)) {
       if (!trailingCons.exists(SingleVowels.contains)) {
         Some((Some("gi"), vowelGroupMatch))
       } else {
         None
       }
-    } else if (leadingConsMatch.contains("gi") && E2.contains(vowelGroupMatch) && trailingCons.isDefined) {
+    } else if (leadingConsMatch.contains("gi") && e2Expanded.contains(vowelGroupMatch) && trailingCons.isDefined) {
       Some((Some("gi"), "i" + vowelGroupMatch))
 
     } else {

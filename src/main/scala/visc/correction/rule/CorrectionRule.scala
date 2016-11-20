@@ -1,4 +1,4 @@
-package visc.correction
+package visc.correction.rule
 
 import visc.util.{ListUtils, StringExpander}
 
@@ -24,7 +24,7 @@ sealed abstract class CorrectionRule extends Product with Serializable {
   def inverseTransform(correction: String): Option[String]
 }
 
-object CorrectionRule extends CorrectionRules {
+object CorrectionRule {
 
   private def replace(
     word: String,
@@ -174,16 +174,28 @@ object CorrectionRule extends CorrectionRules {
       var transformed = word
       var lastMatchedBeginIndex = Int.MaxValue
 
-      for (
-        endIndex <- word.length to 1 by -1
-        if endIndex <= lastMatchedBeginIndex
-        if matchPart(word, endIndex)
-      ) {
-        lastMatchedBeginIndex = endIndex - part.length
-        transformed = replace(transformed, lastMatchedBeginIndex, endIndex, correction)
-      }
+      if (part.length <= word.length) {
+        val (fromEndIndex, toEndIndex) = if (suffixRequired) {
+          (word.length, word.length)
+        } else if (prefixRequired) {
+          (part.length, part.length)
+        } else {
+          (word.length, part.length)
+        }
 
-      if (lastMatchedBeginIndex < Int.MaxValue) Some(transformed) else None
+        for (
+          endIndex <- fromEndIndex to toEndIndex by -1
+          if endIndex <= lastMatchedBeginIndex && matchPart(word, endIndex)
+        ) {
+          lastMatchedBeginIndex = endIndex - part.length
+          transformed = replace(transformed, lastMatchedBeginIndex, endIndex, correction)
+        }
+
+        if (lastMatchedBeginIndex < Int.MaxValue) Some(transformed) else None
+
+      } else {
+        None
+      }
     }
 
     def transform(word: String): Option[String] = {

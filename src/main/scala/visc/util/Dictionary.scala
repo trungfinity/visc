@@ -1,25 +1,30 @@
-package visc.correction
+package visc.util
 
 import scala.io.Source
-
-import visc.util.{LinguisticsUtils, SyllableUtils}
 
 object Dictionary {
 
   val WordPattern = "(?U)^[\\w ]+$".r
-  val InvalidSingleWords = "ăâbcdđfghjklmnpqrstvxz"
+  val InvalidSingleCharWords = "ăâbcdđfghjklmnpqrstvxz"
     .toCharArray
     .map(_.toString)
     .toSet
 
-  val Words = Source
-    .fromFile("data/Viet74K.txt")
+  val AdditionalWords = List(
+    "admin",
+    "cường lực"
+  )
+
+  private val lines = Source
+    .fromFile("data/dictionary/Viet74K.txt")
     .getLines()
+
+  val Words = (lines ++ AdditionalWords)
     .flatMap { word =>
       val normalized = LinguisticsUtils.normalize(word)
 
       val hasStrangeChars = WordPattern.findFirstIn(normalized).isEmpty
-      val invalidSingleChar = InvalidSingleWords.contains(normalized)
+      val invalidSingleChar = InvalidSingleCharWords.contains(normalized)
       val numSyllable = normalized.count(_ == ' ') + 1
 
       if (hasStrangeChars || invalidSingleChar || numSyllable >= 3 ||
@@ -32,6 +37,4 @@ object Dictionary {
     }
     .toList
     .distinct
-
-  val WordSet = Words.toSet
 }

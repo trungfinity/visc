@@ -1,7 +1,7 @@
 lazy val buildSettings = Seq(
   organization := "com.ngthanhtrung",
   version := "0.0.1",
-  scalaVersion := "2.12.0"
+  scalaVersion := "2.11.8"
 )
 
 lazy val deps = Seq(

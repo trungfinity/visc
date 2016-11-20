@@ -1,3 +1,16 @@
+# OS cache files
 .DS_Store
-target/
+
+# IDE files
 /.idea/
+
+# Data files
+/data/frequency/*
+/data/tagged/*
+
+# Build files
+target/
+out/
+
+# To maintain directory structure
+!.keep
