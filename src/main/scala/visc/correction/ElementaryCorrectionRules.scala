@@ -97,7 +97,11 @@ object ElementaryCorrectionRules {
     ("[i~]ng$", "i[ê~]ng") -> TeenCode,
     ("[i~]$", "[a~]y") -> TeenCode,
 
-    ("[ôu~~]$", "[ơ~]") -> TeenCode
+    ("[ôu~~]$", "[ơ~]") -> TeenCode,
+
+    ("0", "[oôơ~~]") -> TeenCode,
+    ("4", "[aăâ~~]") -> TeenCode,
+    ("3", "[eê~~]") -> TeenCode
   )
 
   val Elementary = elementaryRules

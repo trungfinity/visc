@@ -32,5 +32,6 @@ object Main extends App {
 
     printf("Took %.2f seconds.\n", (System.currentTimeMillis() - time).toDouble / 1000)
     printf("Correction: %s\n", correction)
+    println()
   }
 }

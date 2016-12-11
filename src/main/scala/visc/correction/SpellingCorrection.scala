@@ -148,6 +148,7 @@ class SpellingCorrection {
 
       for ((correction, correctionScore) <- singleSyllableCorrections) {
         val score = maxScores(i - 1) + correctionScore
+        // println(s"""f($i) = f(${i - 1}) + score("$correction" | "${syllables(i - 1)}") = $score""")
 
         if (score > maxScores(i)) {
           maxScores(i) = score
@@ -169,6 +170,7 @@ class SpellingCorrection {
 
         for ((correction, correctionScore) <- doubleSyllableCorrections) {
           val score = maxScores(i - 2) + correctionScore
+          // println(s"""f($i) = f(${i - 2}) + score("$correction" | "${syllables(i - 2)} ${syllables(i - 1)}") = $score""")
 
           if (score > maxScores(i)) {
             maxScores(i) = score
@@ -177,6 +179,8 @@ class SpellingCorrection {
           }
         }
       }
+
+      // println(s"f[$i] = ${maxScores(i)}")
     }
 
     var i = syllables.length

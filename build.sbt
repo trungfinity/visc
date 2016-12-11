@@ -12,5 +12,6 @@ lazy val deps = Seq(
 lazy val visc = (project in file("."))
   .settings(buildSettings: _*)
   .settings(
-    libraryDependencies ++= deps
+    libraryDependencies ++= deps,
+    mainClass in Compile := Some("visc.Main")
   )
